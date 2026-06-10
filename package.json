@@ -1,0 +1,26 @@
+{
+  "name": "pokemon-test",
+  "version": "1.0.0",
+  "description": "Pokemon Pokedex Automation Test dengan Playwright",
+  "main": "pokemon-pokedex.spec.ts",
+  "scripts": {
+    "test": "playwright test",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "keywords": [
+    "playwright",
+    "automation",
+    "pokemon",
+    "testing",
+    "qa"
+  ],
+  "author": "Elzah Sentiawati",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
