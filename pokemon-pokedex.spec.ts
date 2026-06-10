@@ -1,13 +1,6 @@
-import { test, expect, Locator } from '@playwright/test';
+import { test, Locator } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-
-// Konfigurasi bypass dan pengumpulan artifact
-test.use({ 
-  ignoreHTTPSErrors: true, 
-  video: 'on', 
-  screenshot: 'on' 
-});
 
 test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, context }) => {
   // 1. Metadata Laporan
@@ -27,19 +20,20 @@ test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, con
   const imgDir = path.join(baseDir, 'Screenshots');
   const videoDir = path.join(baseDir, 'Videos');
   
+  // Create directories
   [pdfDir, imgDir, videoDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
   });
 
-  const steps: { name: string; description: string; file: string }[] = [];
+  const steps: Array<{ name: string; description: string; file: string }> = [];
 
   // --- FUNGSI HELPER VISUAL ---
   const highlight = async (locator: Locator) => {
-    await locator.evaluate(el => {
-      (el as HTMLElement).style.outline = '3px solid red';
-      (el as HTMLElement).style.outlineOffset = '2px';
+    await locator.evaluate((el: any) => {
+      el.style.outline = '3px solid red';
+      el.style.outlineOffset = '2px';
     });
   };
 
@@ -48,7 +42,7 @@ test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, con
       await locator.scrollIntoViewIfNeeded();
       await highlight(locator);
     }
-    await page.waitForTimeout(500); // Tunggu highlight terlihat
+    await page.waitForTimeout(500);
     const fileName = `${name.replace(/\s+/g, '_')}_${fileTimestamp}.png`;
     const filePath = path.join(imgDir, fileName);
     await page.screenshot({ path: filePath });
@@ -57,11 +51,15 @@ test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, con
 
   // --- ALUR PENGUJIAN ---
   try {
+    console.log('🚀 Memulai test...');
+    
     // Langkah 1: Akses Portal Pokedex ID
-    await page.goto('https://id.portal-pokemon.com/play/pokedex', { waitUntil: 'networkidle' });
+    console.log('📍 Step 1: Mengakses Portal Pokedex...');
+    await page.goto('https://id.portal-pokemon.com/play/pokedex', { waitUntil: 'networkidle', timeout: 30000 });
     await captureStep('Akses Portal Pokedex ID', 'Membuka URL Portal Pokemon regional Indonesia.');
 
     // Langkah 2: Input Pencarian
+    console.log('📍 Step 2: Input pencarian...');
     const searchInput = page.locator('#search_input');
     await searchInput.waitFor({ state: 'visible', timeout: 10000 });
     await searchInput.click();
@@ -69,12 +67,14 @@ test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, con
     await captureStep('Input Kata Kunci', 'Memasukkan nama pokemon (Pikachu) ke kolom pencarian.', searchInput);
 
     // Langkah 3: Klik Tombol Cari
+    console.log('📍 Step 3: Klik tombol cari...');
     const searchBtn = page.locator('.pokemon-search__form--button > img');
     await captureStep('Submit Pencarian', 'Menekan tombol cari (ikon kaca pembesar).', searchBtn);
     await searchBtn.click();
-    await page.waitForTimeout(2000); // Tunggu hasil loading
+    await page.waitForTimeout(2000);
 
     // Langkah 4: Klik Hasil Pencarian (Pikachu Listrik)
+    console.log('📍 Step 4: Pilih Pikachu dari hasil...');
     const pikachuLink = page.getByRole('link', { name: 'Pikachu Listrik' });
     await pikachuLink.waitFor({ state: 'visible', timeout: 10000 });
     await captureStep('Pilih Hasil Pokemon', 'Mengklik kartu pokemon Pikachu Listrik dari daftar hasil.', pikachuLink);
@@ -82,12 +82,15 @@ test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, con
     await page.waitForTimeout(2000);
 
     // Langkah 5: Kembali ke Pokedex
+    console.log('📍 Step 5: Kembali ke Pokedex...');
     const backBtn = page.getByRole('link', { name: 'Kembali ke pokedex' });
     await backBtn.waitFor({ state: 'visible', timeout: 10000 });
     await captureStep('Kembali ke Daftar', 'Mengklik link kembali untuk kembali ke halaman daftar Pokedex.', backBtn);
     await backBtn.click();
 
     // --- PEMBUATAN LAPORAN PDF ---
+    console.log('📝 Membuat laporan PDF...');
+    
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -178,13 +181,17 @@ test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, con
             <tr><td class="label">Waktu Eksekusi</td><td>: ${metadata.waktu} WIB</td></tr>
           </table>
           
-          ${steps.map((s, i) => `
-            <div class="step-box">
-              <div class="step-title">Langkah ${i + 1}: ${s.name}</div>
-              <div class="step-desc"><strong>Deskripsi:</strong> ${s.description}</div>
-              <img src="data:image/png;base64,${fs.readFileSync(path.join(imgDir, s.file)).toString('base64')}">
-            </div>
-          `).join('')}
+          ${steps.map((s, i) => {
+            const imagePath = path.join(imgDir, s.file);
+            const imageBase64 = fs.readFileSync(imagePath).toString('base64');
+            return `
+              <div class="step-box">
+                <div class="step-title">Langkah ${i + 1}: ${s.name}</div>
+                <div class="step-desc"><strong>Deskripsi:</strong> ${s.description}</div>
+                <img src="data:image/png;base64,${imageBase64}">
+              </div>
+            `;
+          }).join('')}
           
           <div class="footer">
             Dokumen ini dibuat secara otomatis oleh sistem Playwright Automation.
@@ -209,8 +216,9 @@ test('Pokemon Pokedex Automation Test - Laporan Profesional', async ({ page, con
       fs.copyFileSync(videoPath, path.join(videoDir, `Video_Execution_${fileTimestamp}.webm`));
     }
     
-    console.log(`✅ Pengujian selesai Elzah! Hasil tersimpan di: ${baseDir}`);
-    console.log(`📊 PDF Report: ${pdfPath}`);
+    console.log(`✅ Pengujian selesai Elzah!`);
+    console.log(`📊 Hasil tersimpan di: ${baseDir}`);
+    console.log(`📄 PDF Report: ${pdfPath}`);
     console.log(`📸 Screenshots: ${imgDir}`);
     console.log(`🎥 Videos: ${videoDir}`);
 
